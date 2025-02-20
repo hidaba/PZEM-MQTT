@@ -61,10 +61,9 @@ void loop() {
     webSocket.loop();
     ArduinoOTA.handle();
 
-    // Lettura dati dalla seriale di Arduino
     if (nanoSerial.available()) {
         String data = nanoSerial.readStringUntil('\n');
-        data.trim();  // Rimuove spazi vuoti
+        data.trim();  
         Serial.println("Dati ricevuti da Arduino: " + data);
 
         if (data.startsWith("PZEM_")) {
@@ -74,7 +73,7 @@ void loop() {
             else if (data.startsWith("PZEM_3")) pzemIndex = 3;
 
             if (pzemIndex != -1) {
-                // Rimuoviamo i nomi "V:", "A:", "W:", "kWh:", "Hz:", "PF:"
+                // Rimuoviamo i prefissi "V:", "A:", "W:", "kWh:", "Hz:", "PF:"
                 data.replace("PZEM_1", "");
                 data.replace("PZEM_2", "");
                 data.replace("PZEM_3", "");
@@ -86,23 +85,34 @@ void loop() {
                 data.replace("PF:", "");
                 
                 data.trim(); // Rimuove gli spazi rimasti
-                
-                float voltage, current, power, energy, frequency, pf;
-                int parsed = sscanf(data.c_str(), "%f %f %f %f %f %f",
-                                    &voltage, &current, &power, &energy, &frequency, &pf);
-                
-                // Verifica che i dati siano stati letti correttamente
-                if (parsed == 6) {
-                    String datiPZEM = formattaDatiPZEM("PZEM_" + String(pzemIndex), voltage, current, power, energy, frequency, pf);
-                    webSocket.broadcastTXT(datiPZEM);
-                    Serial.println("Dati inviati al WebSocket: " + datiPZEM);
-                } else {
-                    Serial.println("Errore nel parsing dei dati PZEM! Stringa ricevuta: " + data);
+
+                float voltage = 0.0, current = 0.0, power = 0.0, energy = 0.0, frequency = 0.0, pf = 0.0;
+                int parsed = sscanf(data.c_str(), "%f %f %f %f %f %f", &voltage, &current, &power, &energy, &frequency, &pf);
+
+                // Se il parsing fallisce, imposta valori a "-"
+                if (parsed != 6) {
+                    Serial.println("⚠️ Errore nel parsing dei dati PZEM! Sostituzione con '-'.");
+                    voltage = current = power = energy = frequency = pf = NAN;
                 }
+
+                // Controlla se i valori sono NaN e li sostituisce con "-"
+                String datiPZEM = formattaDatiPZEM(
+                    "PZEM_" + String(pzemIndex),
+                    isnan(voltage) ? 0.00 : voltage,
+                    isnan(current) ? 0.00 : current,
+                    isnan(power) ? 0.00 : power,
+                    isnan(energy) ? 0.00 : energy,
+                    isnan(frequency) ? 0.00 : frequency,
+                    isnan(pf) ? 0.00 : pf
+                );
+
+                webSocket.broadcastTXT(datiPZEM);
+                Serial.println("✅ Dati inviati al WebSocket: " + datiPZEM);
             }
         }
     }
 }
+
 
 
 
