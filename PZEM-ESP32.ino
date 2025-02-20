@@ -64,33 +64,47 @@ void loop() {
     // Lettura dati dalla seriale di Arduino
     if (nanoSerial.available()) {
         String data = nanoSerial.readStringUntil('\n');
+        data.trim();  // Rimuove spazi vuoti
         Serial.println("Dati ricevuti da Arduino: " + data);
 
-        // Parsing dei dati ricevuti
-        float voltage = 0.0, current = 0.0, power = 0.0, energy = 0.0, frequency = 0.0, pf = 0.0;
-        int pzemIndex = -1;
+        if (data.startsWith("PZEM_")) {
+            int pzemIndex = -1;
+            if (data.startsWith("PZEM_1")) pzemIndex = 1;
+            else if (data.startsWith("PZEM_2")) pzemIndex = 2;
+            else if (data.startsWith("PZEM_3")) pzemIndex = 3;
 
-        // Controlla quale PZEM ha inviato i dati
-        if (data.startsWith("PZEM_1")) pzemIndex = 1;
-        else if (data.startsWith("PZEM_2")) pzemIndex = 2;
-        else if (data.startsWith("PZEM_3")) pzemIndex = 3;
-
-        // Se troviamo un PZEM valido, estraiamo i dati
-        if (pzemIndex != -1) {
-            int firstSpace = data.indexOf(' ');
-            if (firstSpace != -1) {
-                String values = data.substring(firstSpace + 1);
-                sscanf(values.c_str(), "%f,%f,%f,%f,%f,%f", &voltage, &current, &power, &energy, &frequency, &pf);
+            if (pzemIndex != -1) {
+                // Rimuoviamo i nomi "V:", "A:", "W:", "kWh:", "Hz:", "PF:"
+                data.replace("PZEM_1", "");
+                data.replace("PZEM_2", "");
+                data.replace("PZEM_3", "");
+                data.replace("V:", "");
+                data.replace("A:", "");
+                data.replace("W:", "");
+                data.replace("kWh:", "");
+                data.replace("Hz:", "");
+                data.replace("PF:", "");
+                
+                data.trim(); // Rimuove gli spazi rimasti
+                
+                float voltage, current, power, energy, frequency, pf;
+                int parsed = sscanf(data.c_str(), "%f %f %f %f %f %f",
+                                    &voltage, &current, &power, &energy, &frequency, &pf);
+                
+                // Verifica che i dati siano stati letti correttamente
+                if (parsed == 6) {
+                    String datiPZEM = formattaDatiPZEM("PZEM_" + String(pzemIndex), voltage, current, power, energy, frequency, pf);
+                    webSocket.broadcastTXT(datiPZEM);
+                    Serial.println("Dati inviati al WebSocket: " + datiPZEM);
+                } else {
+                    Serial.println("Errore nel parsing dei dati PZEM! Stringa ricevuta: " + data);
+                }
             }
-
-            // Formattiamo i dati per il WebSocket
-            String datiPZEM = formattaDatiPZEM("PZEM_" + String(pzemIndex), voltage, current, power, energy, frequency, pf);
-            webSocket.broadcastTXT(datiPZEM);
-
-            Serial.println("Dati inviati al WebSocket: " + datiPZEM);
         }
     }
 }
+
+
 
 // Gestione richiesta pagina Web
 void handleRoot() {
