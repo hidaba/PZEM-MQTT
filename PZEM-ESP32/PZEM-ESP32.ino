@@ -193,46 +193,39 @@ String paginaHTML() {
     var socket = new WebSocket("ws://" + window.location.hostname + ":81/");
 
     socket.onmessage = function(event) {
-        console.log("Dati ricevuti:", event.data); // Debug per verificare il formato
-        
+        console.log("Dati ricevuti:", event.data); // Debug per verificare i dati ricevuti
+
         var rows = event.data.split("\n"); // Divide i dati ricevuti per riga
 
         rows.forEach(row => {
             if (row.startsWith("PZEM_")) {
                 var parts = row.split(" ");
-                if (parts.length < 3) return; // Se i dati sono incompleti, ignora
+                if (parts.length < 2) return; // Se i dati sono incompleti, ignora
                 
-                var id = parts[0].toLowerCase(); // es. "pzem_1"
-                var values = {
-                    "V": "-",
-                    "A": "-",
-                    "W": "-",
-                    "kWh": "-",
-                    "Hz": "-",
-                    "PF": "-"
-                };
+                var id = parts[0].toUpperCase(); // es. "PZEM_1", "PZEM_2", "PZEM_3"
+                var values = parts[1].split(",");
 
-                // Analizza la stringa per estrarre i valori
-                for (let i = 1; i < parts.length; i++) {
-                    let keyValue = parts[i].split(":");
-                    if (keyValue.length === 2) {
-                        let key = keyValue[0].trim();
-                        let value = keyValue[1].trim();
-                        if (!isNaN(parseFloat(value))) {
-                            values[key] = value; // Salva il valore corretto
-                        }
+                if (values.length === 6) {
+                    // Controlla se i valori sono numeri validi, altrimenti li sostituisce con "-"
+                    for (let i = 0; i < values.length; i++) {
+                        values[i] = isNaN(parseFloat(values[i])) ? "-" : values[i];
+                    }
+
+                    // Verifica se l'elemento esiste prima di aggiornarlo
+                    let tableRow = document.getElementById(id);
+                    if (tableRow) {
+                        tableRow.innerHTML = `
+                            <td>${id}</td>
+                            <td>${values[0]}</td>
+                            <td>${values[1]}</td>
+                            <td>${values[2]}</td>
+                            <td>${values[3]}</td>
+                            <td>${values[4]}</td>
+                            <td>${values[5]}</td>`;
+                    } else {
+                        console.error("Elemento non trovato:", id);
                     }
                 }
-
-                // Inserisce i dati nella tabella
-                document.getElementById(id).innerHTML = `
-                    <td>${id.toUpperCase()}</td>
-                    <td>${values["V"]}</td>
-                    <td>${values["A"]}</td>
-                    <td>${values["W"]}</td>
-                    <td>${values["kWh"]}</td>
-                    <td>${values["Hz"]}</td>
-                    <td>${values["PF"]}</td>`;
             }
         });
     };
@@ -242,6 +235,7 @@ String paginaHTML() {
         socket.send(command);
     }
 </script>
+
 
     </body>
     </html>
