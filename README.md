@@ -85,7 +85,11 @@ Make sure you install the following libraries in the **Arduino IDE**:
 
 ---
 
-## 📌 **Web Interface Preview**
+## 📌 Web Interface Preview
+Here is a preview of the web interface displaying real-time energy data:
+
+![ESP32 Web Interface](webinterface.png)
+
 The web interface allows users to:
 - View **real-time energy data**.
 - Toggle **relays ON/OFF**.
