@@ -2,15 +2,15 @@
 #define CONFIG_H
 
 // WiFi Configuration
-#define WIFI_SSID "hidaba.home"
-#define WIFI_PASSWORD "anolini in brodo!"
+#define WIFI_SSID "sid_wifi"
+#define WIFI_PASSWORD "password_wifi"
 #define WIFI_HOSTNAME "ESP32C3_PZEM"
 
 // MQTT Configuration
 #define MQTT_BROKER "192.168.1.2"  // Change to your MQTT broker address
 #define MQTT_PORT 1883                  // Default MQTT port
 #define MQTT_USER "mosquitto"  // If authentication is needed
-#define MQTT_PASSWORD "Sandoval23!"
+#define MQTT_PASSWORD "mosquitto"
 
 // MQTT Topics for PZEM Data
 #define MQTT_TOPIC_PZEM_1 "homeassistant/energy/pzem1"

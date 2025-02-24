@@ -11,7 +11,7 @@ void setup() {
     Serial.begin(115200);  // Debug monitor
     pzemSerial.begin(9600); // Comunicazione con PZEM
 
-    Serial.println("⚡ PZEM Address Changer");
+    Serial.println("PZEM Address Changer");
     
     uint8_t oldAddr = pzem.readAddress();
     Serial.print("🔹 Current PZEM Address: ");
@@ -26,13 +26,13 @@ void setup() {
      da assegnare
 
     if (pzem.setAddress(newAddr)) {
-        Serial.print("✅ Address changed successfully to: ");
+        Serial.print("Address changed successfully to: ");
         Serial.println(newAddr);
     } else {
-        Serial.println("❌ Failed to change PZEM Address!");
+        Serial.println("Failed to change PZEM Address!");
     }
 
-    Serial.println("🚀 Restart Arduino and use the new address.");
+    Serial.println("Restart Arduino and use the new address.");
 }
 
 void loop() {
