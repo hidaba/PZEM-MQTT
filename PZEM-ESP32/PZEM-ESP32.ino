@@ -13,7 +13,7 @@ WebSocketsServer webSocket(81);
 
 // UART for Arduino Nano
 #define RX_PIN 8
-#define TX_PIN 9
+#define TX_PIN 7
 HardwareSerial nanoSerial(1);
 
 void connectWiFi() {
@@ -51,87 +51,179 @@ void callbackWebSocket(uint8_t num, WStype_t type, uint8_t * payload, size_t len
 }
 
 
+void sendPZEMDiscovery() {
+    Serial.println("📡 Inviando autodiscovery MQTT per i PZEM...");
 
-// MQTT Connection
-void connectMQTT() {
-    while (!mqttClient.connected()) {
-        Serial.print("🔌 Connecting to MQTT broker at ");
-        Serial.print(MQTT_BROKER);
-        Serial.print(":");
-        Serial.println(MQTT_PORT);
+    struct PzemSensor {
+        const char* name;
+        const char* unique_id;
+        const char* topic;
+        const char* unit;
+        const char* device_class;
+        const char* state_class;
+        const char* value_template;
+    };
 
-        if (mqttClient.connect(WIFI_HOSTNAME, MQTT_USER, MQTT_PASSWORD)) {
-            Serial.println("✅ Connected to MQTT broker!");
-            mqttClient.subscribe(MQTT_TOPIC_RELAY "#"); // Subscribe to relay control topics
-            sendAutoDiscovery(); // Invia autodiscovery a Home Assistant
+    const char* device_id = "pzem_monitor";
+
+    PzemSensor pzemSensors[] = {
+        {"PZEM 1 Voltage", "pzem_1_voltage", MQTT_TOPIC_PZEM_1, "V", "voltage", "measurement", "{{ value_json.voltage | float }}"},
+        {"PZEM 1 Current", "pzem_1_current", MQTT_TOPIC_PZEM_1, "A", "current", "measurement", "{{ value_json.current | float }}"},
+        {"PZEM 1 Power", "pzem_1_power", MQTT_TOPIC_PZEM_1, "W", "power", "measurement", "{{ value_json.power | float }}"},
+        {"PZEM 1 Energy", "pzem_1_energy", MQTT_TOPIC_PZEM_1, "kWh", "energy", "total_increasing", "{{ value_json.energy | float }}"},
+        {"PZEM 1 Frequency", "pzem_1_frequency", MQTT_TOPIC_PZEM_1, "Hz", "frequency", "measurement", "{{ value_json.frequency | float }}"},
+        {"PZEM 1 Power Factor", "pzem_1_pf", MQTT_TOPIC_PZEM_1, "", "power_factor", "measurement", "{{ value_json.pf | float }}"},
+
+        {"PZEM 2 Voltage", "pzem_2_voltage", MQTT_TOPIC_PZEM_2, "V", "voltage", "measurement", "{{ value_json.voltage | float }}"},
+        {"PZEM 2 Current", "pzem_2_current", MQTT_TOPIC_PZEM_2, "A", "current", "measurement", "{{ value_json.current | float }}"},
+        {"PZEM 2 Power", "pzem_2_power", MQTT_TOPIC_PZEM_2, "W", "power", "measurement", "{{ value_json.power | float }}"},
+        {"PZEM 2 Energy", "pzem_2_energy", MQTT_TOPIC_PZEM_2, "kWh", "energy", "total_increasing", "{{ value_json.energy | float }}"},
+        {"PZEM 2 Frequency", "pzem_2_frequency", MQTT_TOPIC_PZEM_2, "Hz", "frequency", "measurement", "{{ value_json.frequency | float }}"},
+        {"PZEM 2 Power Factor", "pzem_2_pf", MQTT_TOPIC_PZEM_2, "", "power_factor", "measurement", "{{ value_json.pf | float }}"},
+
+        {"PZEM 3 Voltage", "pzem_3_voltage", MQTT_TOPIC_PZEM_3, "V", "voltage", "measurement", "{{ value_json.voltage | float }}"},
+        {"PZEM 3 Current", "pzem_3_current", MQTT_TOPIC_PZEM_3, "A", "current", "measurement", "{{ value_json.current | float }}"},
+        {"PZEM 3 Power", "pzem_3_power", MQTT_TOPIC_PZEM_3, "W", "power", "measurement", "{{ value_json.power | float }}"},
+        {"PZEM 3 Energy", "pzem_3_energy", MQTT_TOPIC_PZEM_3, "kWh", "energy", "total_increasing", "{{ value_json.energy | float }}"},
+        {"PZEM 3 Frequency", "pzem_3_frequency", MQTT_TOPIC_PZEM_3, "Hz", "frequency", "measurement", "{{ value_json.frequency | float }}"},
+        {"PZEM 3 Power Factor", "pzem_3_pf", MQTT_TOPIC_PZEM_3, "", "power_factor", "measurement", "{{ value_json.pf | float }}"}
+    };
+
+    for (auto& sensor : pzemSensors) {
+        String discoveryTopic = String(MQTT_DISCOVERY_PREFIX) + "sensor/" + sensor.unique_id + "/config";
+
+        String payload = "{";
+        payload += "\"name\": \"" + String(sensor.name) + "\",";
+        payload += "\"state_topic\": \"" + String(sensor.topic) + "\",";
+        payload += "\"unique_id\": \"" + String(sensor.unique_id) + "\",";
+        payload += "\"unit_of_measurement\": \"" + String(sensor.unit) + "\",";
+        payload += "\"device_class\": \"" + String(sensor.device_class) + "\",";
+        payload += "\"state_class\": \"" + String(sensor.state_class) + "\",";
+        payload += "\"value_template\": \"" + String(sensor.value_template) + "\",";
+        payload += "\"device\": {";
+        payload += "   \"identifiers\": [\"" + String(device_id) + "\"],";
+        payload += "   \"name\": \"ESP32 PZEM Monitor\",";
+        payload += "   \"manufacturer\": \"Peacefair\",";
+        payload += "   \"model\": \"PZEM-004T v3\",";
+        payload += "   \"sw_version\": \"1.1\"";
+        payload += "} }";
+
+        bool result = mqttClient.publish(discoveryTopic.c_str(), payload.c_str(), true);
+        
+        if (result) {
+            Serial.println("✅ Autodiscovery inviato per: " + String(sensor.name));
         } else {
-            Serial.print("⚠️ MQTT Connection failed, rc=");
-            Serial.print(mqttClient.state());
+            Serial.println("❌ ERRORE: Autodiscovery NON inviato per: " + String(sensor.name));
+        }
+    }
+}
+
+
+
+
+
+// 🔹 Autodiscovery per il CT Clamp
+void sendCtClampDiscovery() {
+    Serial.println("📡 Inviando autodiscovery MQTT per il CT Clamp...");
+
+    struct CtSensor {
+        const char* name;
+        const char* unique_id;
+        const char* unit;
+        const char* device_class;
+        const char* state_class;
+        const char* value_template;
+    };
+
+    // ID del dispositivo per il CT Clamp
+    const char* device_id = "ct_clamp_sensor";
+
+    CtSensor ctSensors[] = {
+        {"CT Voltage", "ct_voltage", "V", "voltage", "measurement", "{{ value_json.voltage }}"},
+        {"CT Current", "ct_current", "A", "current", "measurement", "{{ value_json.current }}"},
+        {"CT Power", "ct_power", "W", "power", "measurement", "{{ value_json.power }}"},
+        {"CT Energy", "ct_energy", "kWh", "energy", "total_increasing", "{{ value_json.energy }}"}
+    };
+
+    for (auto& sensor : ctSensors) {
+        String discoveryTopic = String(MQTT_DISCOVERY_PREFIX) + "sensor/" + sensor.unique_id + "/config";
+
+        String payload = "{";
+        payload += "\"name\": \"" + String(sensor.name) + "\",";
+        payload += "\"state_topic\": \"" + String(MQTT_TOPIC_CT) + "\",";
+        payload += "\"unique_id\": \"" + String(sensor.unique_id) + "\",";
+        payload += "\"unit_of_measurement\": \"" + String(sensor.unit) + "\",";
+        payload += "\"device_class\": \"" + String(sensor.device_class) + "\",";
+        payload += "\"state_class\": \"" + String(sensor.state_class) + "\",";
+        payload += "\"value_template\": \"" + String(sensor.value_template) + "\",";
+        payload += "\"device\": {";
+        payload += "   \"identifiers\": [\"" + String(device_id) + "\"],";
+        payload += "   \"name\": \"CT Clamp Sensor\",";
+        payload += "   \"manufacturer\": \"hidaba\",";
+        payload += "   \"model\": \"SCT-013\",";
+        payload += "   \"sw_version\": \"1.1\"";
+        payload += "} }";
+
+        mqttClient.publish(discoveryTopic.c_str(), payload.c_str(), true);
+        Serial.println("✅ Autodiscovery inviato per: " + String(sensor.name));
+    }
+}
+
+
+void connectMQTT() {
+    if (!mqttClient.connected()) {
+        Serial.println("📡 Connessione MQTT...");
+        if (mqttClient.connect(WIFI_HOSTNAME, MQTT_USER, MQTT_PASSWORD)) {
+            Serial.println("✅ MQTT connesso!");
+            sendPZEMDiscovery();
+            sendCtClampDiscovery();
+            Serial.println("📩 MQTT autodiscovery inviato con device info!");
+        } else {
+            Serial.print("❌ Errore MQTT, rc=");
+            Serial.println(mqttClient.state());
             Serial.println(". Retrying in 5 seconds...");
             delay(5000);
         }
     }
 }
 
-// Send MQTT Autodiscovery Messages to Home Assistant
-void sendAutoDiscovery() {
-    Serial.println("Sending MQTT Autodiscovery messages...");
-
-    // PZEM Sensors (Voltage, Current, Power, Energy, Frequency, Power Factor)
-    for (int i = 1; i <= 3; i++) {
-        String deviceId = "pzem_" + String(i);
-
-        String discoveryTopic = MQTT_DISCOVERY_PREFIX "/sensor/" + deviceId + "/config";
-        String payload = "{";
-        payload += "\"name\": \"PZEM " + String(i) + "\",";
-        payload += "\"state_topic\": \"" + String(i == 1 ? MQTT_TOPIC_PZEM_1 : (i == 2 ? MQTT_TOPIC_PZEM_2 : MQTT_TOPIC_PZEM_3)) + "\",";
-        payload += "\"unit_of_measurement\": \"V\",";
-        payload += "\"value_template\": \"{{ value_json.voltage }}\",";
-        payload += "\"device\": {\"identifiers\": [\"" + deviceId + "\"], \"name\": \"PZEM Sensor " + String(i) + "\", \"manufacturer\": \"Peacefair\", \"model\": \"PZEM-004T v3\"}";
-        payload += "}";
-
-        mqttClient.publish(discoveryTopic.c_str(), payload.c_str(), true);
-    }
-
-    // Relays
-    for (int i = 1; i <= 4; i++) {
-        String deviceId = "relay_" + String(i);
-        String discoveryTopic = MQTT_DISCOVERY_PREFIX "/switch/" + deviceId + "/config";
-        String payload = "{";
-        payload += "\"name\": \"Relay " + String(i) + "\",";
-        payload += "\"command_topic\": \"" MQTT_TOPIC_RELAY + String(i) + "\",";
-        payload += "\"state_topic\": \"" MQTT_TOPIC_RELAY + String(i) + "/state\",";
-        payload += "\"payload_on\": \"ON\",";
-        payload += "\"payload_off\": \"OFF\",";
-        payload += "\"device\": {\"identifiers\": [\"" + deviceId + "\"], \"name\": \"Relay " + String(i) + "\", \"manufacturer\": \"Custom\", \"model\": \"4-Channel Relay\"}";
-        payload += "}";
-
-        mqttClient.publish(discoveryTopic.c_str(), payload.c_str(), true);
-    }
-}
-
-// Handle MQTT messages (Relay control)
 void callbackMQTT(char* topic, byte* payload, unsigned int length) {
-    payload[length] = '\0';  
-    String message = String((char*)payload);
-    Serial.print("MQTT Message received: ");
-    Serial.println(message);
+    String message;
+    for (unsigned int i = 0; i < length; i++) {
+        message += (char)payload[i];
+    }
+    message.trim();
 
-    if (String(topic).startsWith(MQTT_TOPIC_RELAY)) {
-        int relayNum = String(topic).substring(strlen(MQTT_TOPIC_RELAY)).toInt();
-        bool state = (message == "ON");
+    Serial.println("📩 Messaggio ricevuto su MQTT: " + String(topic) + " → " + message);
 
-        if (relayNum >= 1 && relayNum <= 4) {
-            int relayPin = relayNum + 1; // Relays connected to D2-D5
-            digitalWrite(relayPin, state ? LOW : HIGH);
-            Serial.printf("Relay %d set to %s\n", relayNum, state ? "ON" : "OFF");
+    if (message == "ON" || message == "OFF") {
+        int relayNum = -1;
 
-            // Publish relay state to MQTT
-            String relayStateTopic = MQTT_TOPIC_RELAY + String(relayNum) + "/state";
-            mqttClient.publish(relayStateTopic.c_str(), state ? "ON" : "OFF", true);
+        if (String(topic) == String(MQTT_TOPIC_RELAY) + "/1") relayNum = 1;
+        if (String(topic) == String(MQTT_TOPIC_RELAY) + "/2") relayNum = 2;
+        if (String(topic) == String(MQTT_TOPIC_RELAY) + "/3") relayNum = 3;
+        if (String(topic) == String(MQTT_TOPIC_RELAY) + "/4") relayNum = 4;
+
+        if (relayNum != -1) {
+            // 📡 Invia il comando all'Arduino via seriale
+            String command = "RELAY " + String(relayNum) + " " + message;
+            nanoSerial.println(command);
+            Serial.println("📤 Comando inviato all'Arduino: " + command);
+
+            // 📤 Pubblica lo stato aggiornato su MQTT
+            String stateTopic = String(MQTT_TOPIC_RELAY) + "/" + String(relayNum) + "/state";
+            mqttClient.publish(stateTopic.c_str(), message.c_str(), true);
+            Serial.println("📤 Stato relè pubblicato su MQTT: " + stateTopic + " → " + message);
         }
     }
 }
+
+void publishRelayState(int relayNum, String state) {
+    String stateTopic = String(MQTT_TOPIC_RELAY) + "/" + String(relayNum) + "/state";
+    mqttClient.publish(stateTopic.c_str(), state.c_str(), true);
+    Serial.println("📤 Stato relè pubblicato su MQTT: " + stateTopic + " → " + state);
+}
+
 
 String pzemData = "Caricamento..."; // Dati ricevuti dai PZEM
 
@@ -144,7 +236,7 @@ String formattaDatiPZEM(String nome, float v, float a, float w, float kWh, float
 
 void setup() {
     Serial.begin(115200);
-    nanoSerial.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);
+    nanoSerial.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
 
     // Connessione WiFi con hostname personalizzato
     WiFi.hostname(WIFI_HOSTNAME);
@@ -161,6 +253,7 @@ void setup() {
     mqttClient.setServer(MQTT_BROKER, MQTT_PORT);
     mqttClient.setCallback(callbackMQTT);
     
+    mqttClient.setBufferSize(512);  // ⬅️ Aumentiamo la dimensione dei messaggi MQTT
     // Tenta la connessione iniziale a MQTT
     connectMQTT();
 
@@ -192,10 +285,17 @@ void loop() {
 
     // 🔹 Lettura dati dalla seriale di Arduino
     if (nanoSerial.available()) {
+      
         String data = nanoSerial.readStringUntil('\n');
         data.trim();
 
-        Serial.println("📩 Dati ricevuti da Arduino: [" + data + "]");
+        //Serial.println("📩 Dati ricevuti da Arduino: [" + data + "]");
+        if (data.startsWith("RELAY")) {
+            int relayNum = data.substring(6, 7).toInt();
+            String state = data.substring(8);
+            publishRelayState(relayNum, state);
+            Serial.println(data);
+        }
 
         if (data.startsWith("PZEM_")) {
             int pzemIndex = -1;
@@ -235,7 +335,6 @@ void loop() {
                 // 🔹 Invia i dati al WebSocket per aggiornare la pagina web
                 String datiPZEM = "PZEM_" + String(pzemIndex) + " " + mqttPayload;
                 webSocket.broadcastTXT(datiPZEM);
-                Serial.println("📤 Dati inviati: " + datiPZEM);
             }
         } 
         else if (data.startsWith("A0")) {
@@ -245,11 +344,11 @@ void loop() {
             String mqttPayload = "{\"A0\":" + String(a0Value) + "}";
 
             // 🔹 Pubblica il valore su MQTT
-            mqttClient.publish("home/analog/A0", mqttPayload.c_str(), true);
+            mqttClient.publish(MQTT_TOPIC_A0, mqttPayload.c_str(), true);
 
             // 🔹 Invia il valore al WebSocket per aggiornare la pagina web
             webSocket.broadcastTXT("A0 " + mqttPayload);
-            Serial.println("📤 Inviato valore A0: " + mqttPayload);
+            
         }
 
     if (data.startsWith("CT")) {
@@ -269,7 +368,7 @@ void loop() {
       mqttPayload += "\"energy\":" + String(energiaTotale, 3) + "}";
 
       // 📡 Pubblica su MQTT
-      mqttClient.publish("home/sensors/ct_current", mqttPayload.c_str(), true);
+      mqttClient.publish(MQTT_TOPIC_CT, mqttPayload.c_str(), true);
 
       // 🔹 Invia valore via WebSocket alla pagina web
       webSocket.broadcastTXT("CT " + mqttPayload);
@@ -357,26 +456,6 @@ String paginaHTML() {
                 <tr><th>Potenza Attiva (W)</th><td id="CT_power">-</td></tr>
                 <tr><th>Energia Totale (kWh)</th><td id="CT_energy">-</td></tr>
             </table>
-        </div>
-
-        <div class="card">
-            <h3>Controllo Relè</h3>
-            <label class="switch">
-                <input type="checkbox" onclick="sendCommand('RELAY 1 ' + (this.checked ? 'ON' : 'OFF'))">
-                <span class="slider"></span>
-            </label> Relè 1 <br><br>
-            <label class="switch">
-                <input type="checkbox" onclick="sendCommand('RELAY 2 ' + (this.checked ? 'ON' : 'OFF'))">
-                <span class="slider"></span>
-            </label> Relè 2 <br><br>
-            <label class="switch">
-                <input type="checkbox" onclick="sendCommand('RELAY 3 ' + (this.checked ? 'ON' : 'OFF'))">
-                <span class="slider"></span>
-            </label> Relè 3 <br><br>
-            <label class="switch">
-                <input type="checkbox" onclick="sendCommand('RELAY 4 ' + (this.checked ? 'ON' : 'OFF'))">
-                <span class="slider"></span>
-            </label> Relè 4
         </div>
 
 <script>

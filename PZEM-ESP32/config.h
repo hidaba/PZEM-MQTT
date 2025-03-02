@@ -13,14 +13,16 @@
 #define MQTT_PASSWORD "mosquitto"
 
 // MQTT Topics for PZEM Data
-#define MQTT_TOPIC_PZEM_1 "homeassistant/energy/pzem1"
-#define MQTT_TOPIC_PZEM_2 "homeassistant/energy/pzem2"
-#define MQTT_TOPIC_PZEM_3 "homeassistant/energy/pzem3"
+#define MQTT_TOPIC_PZEM_1 "pzem32/energy/pzem1"
+#define MQTT_TOPIC_PZEM_2 "pzem32/energy/pzem2"
+#define MQTT_TOPIC_PZEM_3 "pzem32/energy/pzem3"
+#define MQTT_TOPIC_CT "pzem32/energy/ct_current"
+#define MQTT_TOPIC_A0 "pzem32/analog/A0"
 
-// MQTT Topics for Relays
-#define MQTT_TOPIC_RELAY "homeassistant/relay/"
+#define MQTT_TOPIC_RELAY "pzem32/relay"
+
 
 // MQTT Discovery Topics for Home Assistant
-#define MQTT_DISCOVERY_PREFIX "homeassistant"
+#define MQTT_DISCOVERY_PREFIX "homeassistant/"
 
 #endif
