@@ -107,9 +107,3 @@ To change the PZEM-004T device address, an integrated utility allows users to se
 ## 📌 **License**
 This project is open-source. Feel free to modify and improve it!
 
-
-
----
-
-## 📌 **License**
-This project is open-source. Feel free to modify and improve it!
