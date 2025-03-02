@@ -3,14 +3,14 @@
 This project uses an **ESP32-C3** and an **Arduino Nano** to monitor energy consumption using multiple **PZEM-004T** sensors. Data is transmitted via **UART** from the Arduino Nano to the ESP32-C3, which then publishes the data via **MQTT** with support for **Home Assistant Auto Discovery**.
 
 ---
-
 ## 📌 **Features**
-✅ **Real-time energy monitoring** with up to **3 PZEM-004T** sensors.
+✅ **Real-time energy monitoring** with up to **3 PZEM-004T** sensors.  
+✅ **Web interface** to display voltage, current, power, energy, frequency, and power factor.  
+✅ **WebSocket communication** for fast data updates.  
+✅ **OTA updates** to update the ESP32-C3 firmware wirelessly.  
+✅ **Automatic PZEM detection** (if a PZEM is not connected, it won't cause errors).
 ✅ **MQTT data publishing** for integration with Home Assistant or other systems.
 ✅ **Support for Home Assistant Auto Discovery**.
-✅ **OTA updates** to update the ESP32-C3 firmware wirelessly.
-✅ **Automatic PZEM detection** (if a PZEM is not connected, it will be ignored).
-✅ **Utility to change PZEM-004T addresses**.
 
 ---
 ## 📌 Web Interface Preview
