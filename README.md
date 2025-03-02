@@ -33,27 +33,18 @@ This project uses an **ESP32-C3** and an **Arduino Nano** to monitor energy cons
 ---
 
 ## 📌 **Wiring Diagram**
-### **🔹 Connections Between Arduino Nano and ESP32-C3**
+### **🔹 Examples of connections Between Arduino Nano and ESP32-C3**
 | Arduino Nano | ESP32-C3 | Function |
 |-------------|----------|----------|
 | **TX (Pin 8)** | **RX (GPIO6)** | UART Communication |
 | **RX (Pin 9)** | **TX (GPIO7)** | UART Communication |
 | **GND** | **GND** | Common Ground |
 
-### **🔹 Connections Between Arduino Nano and PZEM-004T**
+### **🔹 Example of connections Between Arduino Nano and PZEM-004T**
 | Arduino Nano | PZEM-004T | Function |
 |-------------|-----------|----------|
 | **6 (SoftwareSerial TX)** | **RX (PZEM)** | Serial Communication |
 | **7 (SoftwareSerial RX)** | **TX (PZEM)** | Serial Communication |
-| **GND** | **GND** | Common Ground |
-
-### **🔹 Connections for Relays**
-| Arduino Nano | Relay Module | Function |
-|-------------|--------------|----------|
-| **2** | **IN1** | Relay 1 |
-| **3** | **IN2** | Relay 2 |
-| **4** | **IN3** | Relay 3 |
-| **5** | **IN4** | Relay 4 |
 | **GND** | **GND** | Common Ground |
 
 ---
@@ -99,7 +90,6 @@ The web interface allows users to:
 
 ## 📌 **Future Improvements**
 🚀 Possible future features:
-- **MQTT integration** for smart home automation.
 - **Data logging** to an SD card or cloud database.
 - **Graphing system** to visualize energy consumption trends.
 
